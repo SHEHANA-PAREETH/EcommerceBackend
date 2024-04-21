@@ -1,0 +1,10 @@
+const express= require('express')
+const {createCategory,updateCategory,getAllCategories,getSingleCategory,deleteCategory} = require('../controllers/categoryController')
+const { authenticate, authorizedAdmin } = require('../middelewares/authMiddleware')
+const router = express.Router()
+ router.post('/',authenticate,authorizedAdmin,createCategory)
+ router.put('/:categoryId',authenticate,authorizedAdmin,updateCategory)
+ router.delete('/:categoryId',authenticate,authorizedAdmin,deleteCategory)
+ router.get('/',getAllCategories)
+router.get('/:id',authenticate,authorizedAdmin,getSingleCategory)
+ module.exports = router
