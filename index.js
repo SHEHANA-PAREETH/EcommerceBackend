@@ -22,6 +22,9 @@ app.use(express.static('public'));
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 app.use(cookieParser())
+app.use('/',(req,res)=>{
+    res.send('hiiii')
+})
 app.use('/api/users',userRoutes)
 app.use('/api/admin',adminRouter)
 app.use('/api/category',categoryRoutes)
