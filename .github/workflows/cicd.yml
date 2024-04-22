@@ -14,7 +14,7 @@ jobs:
       - name: Build Docker Image
         run: docker build -t shehanapareeth/ecommerce-backend .
       - name: Publish Image to docker hub
-        run: docker push shehanapareeth/ecommerce-backend:latest
+        run: docker push shehanapareeth/ecommerce-node-backend:latest
   deploy:
     needs: build
     runs-on: self-hosted
