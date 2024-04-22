@@ -19,7 +19,7 @@ deploy:
  needs: build
  run-ons: self-hosted     
  steps:
-  -name: Pull Image from Docker hub
-   run: docker pull  shehanapareeth/ecommerce-backend:latest
+  - name: Pull Image from Docker hub
+    run: docker pull  shehanapareeth/ecommerce-backend:latest
   - name: Run Docker Container
-   run: docker run -d -p 5000:5000 --name:nodejs-app-container -e MONGO_URI = '${{secrets.MONGO_URI}' shehanapareeth/ecommerce-backend
+    run: docker run -d -p 5000:5000 --name:nodejs-app-container -e MONGO_URI = '${{secrets.MONGO_URI}' shehanapareeth/ecommerce-backend
