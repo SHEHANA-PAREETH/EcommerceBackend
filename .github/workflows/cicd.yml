@@ -1,4 +1,4 @@
-name : "Deply Node Application",
+name : "Deply Node Application"
 on: 
   push:
    branches: 
