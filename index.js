@@ -22,7 +22,7 @@ app.use(express.static('public'));
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 app.use(cookieParser())
-app.use('/',(req,res)=>{
+app.get('/',(req,res)=>{
     res.send('hiiii')
 })
 app.use('/api/users',userRoutes)
