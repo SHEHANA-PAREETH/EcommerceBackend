@@ -31,7 +31,7 @@ app.use('/api/category',categoryRoutes)
 app.use('/api/product',productRoutes)
 app.use('/api/orders',orderRoutes)
 app.use('/api/config/stripe',paymentRouter)
-const PORT= process.env.PORT || 5000;
+const PORT=  5000;
 app.listen(PORT,()=>{
     console.log("server startted");
 })

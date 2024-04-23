@@ -28,5 +28,5 @@ jobs:
           NODE_ENV: ${{secrets.NODE_ENV}}
           STRIPE_SECRET_KEY: ${{secrets.STRIPE_SECRET_KEY}}
           CLIENT_SITE_URL: ${{secrets.CLIENT_SITE_URL}}
-          PORT: ${{secrets.PORT}} 
-        run: docker run -d -p $PORT:$PORT -e MONGO_URI=$MONGO_URI -e JWT_SECRETKEY=$JWT_SECRETKEY -e NODE_ENV=$NODE_ENV -e STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY -e CLIENT_SITE_URL=$CLIENT_SITE_URL shehanapareeth/ecommerce-node-backend
+         
+        run: docker run -d -p 5000:5000 -e MONGO_URI=$MONGO_URI -e JWT_SECRETKEY=$JWT_SECRETKEY -e NODE_ENV=$NODE_ENV -e STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY -e CLIENT_SITE_URL=$CLIENT_SITE_URL shehanapareeth/ecommerce-node-backend
