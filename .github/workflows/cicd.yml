@@ -22,7 +22,7 @@ jobs:
       - name: Pull Image from Docker hub
         run: docker pull shehanapareeth/ecommerce-node-backend:latest
       - name: Run Docker Container
-       env:
+        env:
           MONGO_URI: ${{secrets.MONGO_URI}}
           JWT_SECRETKEY: ${{secrets.JWT_SECRETKEY}}
           NODE_ENV: ${{secrets.NODE_ENV}}
