@@ -15,6 +15,8 @@ jobs:
         run: docker build . -t shehanapareeth/ecommerce-node-backend 
       - name: Publish Image to docker hub
         run: docker push shehanapareeth/ecommerce-node-backend:latest
+      - name: Clean up Docker
+        run: docker system prune -f
   deploy:
     needs: build
     runs-on: self-hosted
