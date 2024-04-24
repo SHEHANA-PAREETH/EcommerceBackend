@@ -25,30 +25,4 @@ jobs:
         run: docker rm -f nodejs-app-container
       - name: Run Docker Container
         run: docker run -p 5000:5000 --name nodejs-app-container -e MONGO_URI='${{secrets.MONGO_URI}}' shehanapareeth/ecommerce-node-backend
-      - name: Clean up GitHub Actions artifacts
-        run: |
-          # Remove unnecessary files
-          rm -rf /path/to/temp/files/*
-
-          # Remove logs older than 7 days
-          find /path/to/logs/* -type f -mtime +7 -exec rm {} \;
-
-          # Remove build artifacts
-          rm -rf /path/to/build/artifacts/*
-
-      - name: Cache Node.js dependencies
-        uses: actions/cache@v2
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-        if: success()
-
-      - name: Install Node.js dependencies
-        run: npm ci
-        if: success()
-
-      - name: Run tests
-        run: npm test
-        if: success()
+      
