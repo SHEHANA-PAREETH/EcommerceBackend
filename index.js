@@ -1,37 +1,33 @@
-const express = require("express")
+const express = require('express')
+const path = require('path')
 const cors = require('cors')
+const helmet = require('helmet')
+const compression = require('compression')
 const cookieParser = require('cookie-parser')
-const userRoutes = require('./routes/userRoutes')
-const adminRouter= require('./routes/adminRouter')
-const orderRoutes = require('./routes/orderRoutes')
-const categoryRoutes = require('./routes/categoryRoutes')
-const productRoutes = require ('./routes/productRoutes')
-const dotenv = require('dotenv')
-const paymentRouter = require('./routes/paymentRouter')
-dotenv.config()
+const { port, clientUrls, isProd } = require('./config/env')
 const connectDB = require('./config/db')
-connectDB()
+const routes = require('./routes')
+const { notFound, errorHandler } = require('./middleware/error')
+const { apiLimiter, requireAjaxHeader } = require('./middleware/security')
+
 const app = express()
+app.set('trust proxy', 1) // behind Render / nginx, so rate limits see the real client IP
 
-
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } })) // product pictures are shown on another origin
+app.use(compression())
 app.use(cors({
-    origin: process.env.CLIENT_SITE_URL,
-credentials:true
+  origin: (origin, cb) => cb(null, !origin || clientUrls.includes(origin) || (!isProd && /^http:\/\/localhost:\d+$/.test(origin))),
+  credentials: true,
 }))
-app.use(express.static('public'));
-app.use(express.json())
-app.use(express.urlencoded({extended:true}))
+app.use(express.json({ limit: '100kb' }))
 app.use(cookieParser())
-app.get('/',(req,res)=>{
-    res.send('hiiii')
-})
-app.use('/api/users',userRoutes)
-app.use('/api/admin',adminRouter)
-app.use('/api/category',categoryRoutes)
-app.use('/api/product',productRoutes)
-app.use('/api/orders',orderRoutes)
-app.use('/api/config/stripe',paymentRouter)
-const PORT=  5000;
-app.listen(PORT,()=>{
-    console.log("server startted");
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), { maxAge: '7d', index: false }))
+
+app.get('/health', (req, res) => res.json({ ok: true }))
+app.use('/api', apiLimiter, requireAjaxHeader, routes)
+app.use(notFound)
+app.use(errorHandler)
+
+connectDB().then(() => {
+  app.listen(port, () => console.log(`API listening on http://localhost:${port}`))
 })

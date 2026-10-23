@@ -1,109 +1,73 @@
-const express = require('express')
-const User = require('../models/userModel')
-const bcrypt= require("bcrypt")
-const createToken = require('../utils/createToken')
+const bcrypt = require('bcrypt')
+const User = require('../models/User')
+const { asyncHandler, HttpError, text, issueSession, clearSession, publicUser } = require('../utils/helpers')
 
-
-const createUser= async (req,res)=>{
-    const {username,email,password} =req.body;
-    //console.log(username);
-    //console.log(email);
-    //console.log(password);
-    const salt= await bcrypt.genSalt(10)
-const hashedPassword = await bcrypt.hash(password, salt)
-    User({
-        username: username,
-        email: email,
-        password: hashedPassword
-    }).save().then((resp)=>{
-        console.log(resp);
-       createToken(res, resp._id)
-       res.status(201).json({message:"successfully created account",_id:resp._id,username:resp.username,email:resp.email,isAdmin:resp.isAdmin})
-
-    }).catch((error)=>{
-        console.log(error);
-        if(error.code === 11000){
-            res.status(400).json({error:"email already exists"})
-        }
-        else{
-            res.status(400).json({error:"invalid user data"})
-        }
-        
-    })
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+const checkPassword = (password) => {
+  if (typeof password !== 'string' || password.length < 8) throw new HttpError(400, 'Password must be at least 8 characters')
+  if (password.length > 72) throw new HttpError(400, 'Password must be 72 characters or fewer')
+  if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) throw new HttpError(400, 'Password needs at least one letter and one number')
 }
-const loginUser= async (req,res)=>{
-   const{email,password} =req.body;
-   const existingUser= await User.findOne({email})
-   if(existingUser){
-    const isPasswordValid = await bcrypt.compare(password,existingUser.password)
-    if(isPasswordValid){
-        let token = createToken(res,existingUser._id)
-        //console.log(token,"created");
-        res.status(201).json({
-            _id:existingUser._id,
-            username:existingUser.username,
-            email:existingUser.email,
-            isAdmin:existingUser.isAdmin
-        })
-        return;
-    }
-    else{
-        res.status(400).json({error:"invalid password"})
-    }
-   }
-   else{
-    res.status(400).json({error:"email doesn't exist, create an account"})
-   }
-}
-const logoutUser=(req,res)=>{
-res.cookie('jwt','',{
-    httpOnly : true,
-    expires: new Date(0)
+
+const createUser = asyncHandler(async (req, res) => {
+  const username = text(req.body.username, 50)
+  const email = text(req.body.email, 120).toLowerCase()
+  const { password } = req.body
+  if (username.length < 2) throw new HttpError(400, 'Please enter your name')
+  if (!EMAIL.test(email)) throw new HttpError(400, 'Please enter a valid email address')
+  checkPassword(password)
+  if (await User.exists({ email })) throw new HttpError(409, 'An account with this email already exists')
+
+  const user = await User.create({ username, email, password: await bcrypt.hash(password, 10) })
+  issueSession(res, user._id)
+  res.status(201).json(publicUser(user))
 })
-res.status(200).json({msg:"logout successfully"})
-}
-const getCurrentUserProfile= async (req,res)=>{
-const user = await User.findById(req.user._id)
-console.log(user);
-if(user){
-    res.json({
-        _id:user._id,
-        username:user.username,
-        email:user.email
-    })
-}
-else{
-    res.status(404)
-    throw new Error("User not found.")
-}
-}
-const updateCurrentUserProfile= async (req,res)=>{
-   const user =await User.findById(req.user._id)
-   if(user){
-    user.username = req.body.username || user.username
-user.email = req.body.email || user.email
-if(req.body.password){
-    const salt= await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(req.body.password,salt)
-    user.password = hashedPassword
-}
-const updatedUser = await user.save()
-res.json({
-    _id:updatedUser._id,
-    username:updatedUser.username,
-    email:updatedUser.email,
-    isAdmin:updatedUser.isAdmin
 
+const loginUser = asyncHandler(async (req, res) => {
+  const email = text(req.body.email, 120).toLowerCase()
+  const password = typeof req.body.password === 'string' ? req.body.password : ''
+  const user = email && password ? await User.findOne({ email }) : null
+  // same message for "no such email" and "wrong password" so accounts can't be probed
+  if (!user || !(await bcrypt.compare(password, user.password))) throw new HttpError(401, 'Incorrect email or password')
+  issueSession(res, user._id)
+  res.json(publicUser(user))
 })
-}
-else{
-    res.status(404)
-    throw new Error("User not found.")
-}
+
+const logoutUser = (req, res) => {
+  clearSession(res)
+  res.json({ message: 'Signed out' })
 }
 
-const getTotalUsers= async(req,res)=>{
-    const users = await User.countDocuments()
-    res.json(users)
-}
-module.exports = {createUser,loginUser,logoutUser,getCurrentUserProfile,updateCurrentUserProfile,getTotalUsers}
+const getProfile = (req, res) => res.json(publicUser(req.user))
+
+const updateProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id)
+  const username = text(req.body.username, 50)
+  const email = text(req.body.email, 120).toLowerCase()
+  const { password, currentPassword } = req.body
+
+  if (username) {
+    if (username.length < 2) throw new HttpError(400, 'Name is too short')
+    user.username = username
+  }
+  const emailChanged = email && email !== user.email
+  // changing the email or the password needs the current password, so a stolen session can't take over the account
+  if (emailChanged || password) {
+    if (typeof currentPassword !== 'string' || !(await bcrypt.compare(currentPassword, user.password))) {
+      throw new HttpError(400, 'Enter your current password to change your email or password')
+    }
+  }
+  if (emailChanged) {
+    if (!EMAIL.test(email)) throw new HttpError(400, 'Please enter a valid email address')
+    if (await User.exists({ email, _id: { $ne: user._id } })) throw new HttpError(409, 'That email is already in use')
+    user.email = email
+  }
+  if (password) {
+    checkPassword(password)
+    user.password = await bcrypt.hash(password, 10)
+  }
+  await user.save()
+  res.json(publicUser(user))
+})
+
+module.exports = { createUser, loginUser, logoutUser, getProfile, updateProfile }

@@ -1,12 +1,9 @@
-FROM node:16-alpine
-ENV JWT_SECRETKEY="asdfghjkkl"
-ENV NODE_ENV="development"
-ENV STRIPE_SECRET_KEY="sk_test_51P65lNSC8qQELg2Ownxm0mEaT4LAg084I0t0WH83D5qozUA7tA7uHbV1rTc17nldZ4XEKrt6awhlfyvP1FZodmst00pVLqRztV"
-ENV CLIENT_SITE_URL="http://13.48.123.137:3000"
+FROM node:20-alpine
+ENV NODE_ENV=production
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
-RUN npm install -g nodemon
+RUN npm ci --omit=dev
 COPY . .
 EXPOSE 5000
-CMD ["npm", "start"]
+# secrets (MONGO_URI, JWT_SECRETKEY, STRIPE_SECRET_KEY, CLIENT_SITE_URL ...) are passed at run time, never baked into the image
+CMD ["node", "index.js"]
