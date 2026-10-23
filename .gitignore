@@ -1,2 +1,7 @@
 node_modules
 .env
+.env.*
+!.env.example
+# uploaded pictures are not source code (use Cloudinary in production)
+public/uploads/*
+!public/uploads/.gitkeep
