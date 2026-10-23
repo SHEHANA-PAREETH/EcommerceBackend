@@ -92,6 +92,8 @@ const getOrder = asyncHandler(async (req, res) => res.json(await accessibleOrder
 
 const cancelOrder = asyncHandler(async (req, res) => {
   const order = await accessibleOrder(req)
+  // only the buyer cancels here; an admin changes the status from the admin area
+  if (String(order.user._id) !== String(req.user._id)) throw new HttpError(403, 'Only the buyer can cancel this order')
   if (order.status !== 'processing') throw new HttpError(400, 'This order has already been shipped or closed')
   if (order.isPaid) throw new HttpError(400, 'This order is already paid. Please contact support for a refund.')
   order.status = 'cancelled'
